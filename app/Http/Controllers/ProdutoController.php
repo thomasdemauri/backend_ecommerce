@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\ProdutoStoreRequest;
 use App\Http\Resources\ProdutoResource;
 use App\Models\Produto;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Symfony\Component\HttpFoundation\Response;
@@ -26,9 +27,7 @@ class ProdutoController extends Controller
     {
         $produtos = $this->produto::paginate(10);
 
-        return response()->json([
-            'produtos' => ProdutoResource::collection($produtos)
-        ], Response::HTTP_OK);
+        return response()->json(ProdutoResource::collection($produtos), Response::HTTP_OK);
     }
 
     /**
@@ -48,7 +47,9 @@ class ProdutoController extends Controller
      */
     public function show(Produto $produto)
     {
-        //
+        return response()->json([
+            'produto' => new ProdutoResource($produto)
+        ], Response::HTTP_OK);
     }
 
     /**
