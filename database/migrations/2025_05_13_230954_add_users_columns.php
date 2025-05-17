@@ -28,12 +28,5 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn([
-                'nome_completo', 'cpf', 'logradouro',
-                'numero_logradouro', 'numero_logradouro', 'bairro',
-                'municipio', 'uf', 'cep'
-            ]);
-        });
     }
 };

@@ -3,17 +3,32 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProdutoStoreRequest;
+use App\Http\Resources\ProdutoResource;
 use App\Models\Produto;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
+use Symfony\Component\HttpFoundation\Response;
 
 class ProdutoController extends Controller
 {
+
+    private Produto $produto;
+
+    public function __construct(Produto $produto)
+    {
+        $this->produto = $produto;
+    }
+
     /**
      * Display a listing of the resource.
      */
     public function index()
     {
-        return response()->json('Hello world');
+        $produtos = $this->produto::paginate(10);
+
+        return response()->json([
+            'produtos' => ProdutoResource::collection($produtos)
+        ], Response::HTTP_OK);
     }
 
     /**
