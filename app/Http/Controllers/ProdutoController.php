@@ -8,6 +8,7 @@ use App\Models\Produto;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\Response;
 
 class ProdutoController extends Controller
@@ -33,13 +34,11 @@ class ProdutoController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(ProdutoStoreRequest $request)
+    public function salvarProduto(ProdutoStoreRequest $request)
     {
-        $payload = $request->validated();
+        // $payload = $request->validated();
 
-        $produto = Produto::create($payload);
-
-        return response()->json($produto, 201);
+        return response()->json(['ok'], 200);
     }
 
     /**

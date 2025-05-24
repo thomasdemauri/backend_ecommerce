@@ -10,7 +10,9 @@ Route::get('/user', function (Request $request) {
 
 
 Route::prefix('/v1')->group(function () {
-    Route::apiResource('produto', ProdutoController::class);
+    // Route::apiResource('produto', ProdutoController::class);
+    Route::get('/produtos', [ProdutoController::class, 'index'])->name('produtos.index');
+    Route::post('/save', [ProdutoController::class, 'salvarProduto'])->name('produtos.salvar');
 });
 
 Route::get('/', function () {
