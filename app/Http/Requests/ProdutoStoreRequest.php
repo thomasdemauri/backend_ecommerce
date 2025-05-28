@@ -22,21 +22,11 @@ class ProdutoStoreRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'arquivo_3d'    => 'required|string',
+            'arquivo_3d'    => 'required|file',
             'capa'          => 'required',
             'titulo'        => 'required|string|max:64',
             'descricao'     => 'required|min:10',
             'valor'         => 'required|decimal:0,2'
         ];
-    }
-
-    /**
-     * Prepare the data for validation.
-     */
-    protected function prepareForValidation(): void
-    {
-        $this->merge([
-            'arquivo_3d' => $this->input('arquivo3d') ?? $this->input('arquivo_3d')
-        ]);
     }
 }

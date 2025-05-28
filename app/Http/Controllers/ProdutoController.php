@@ -2,68 +2,85 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\ProdutoStoreRequest;
-use App\Http\Resources\ProdutoResource;
+use Exception;
 use App\Models\Produto;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
+use App\Http\Resources\ProdutoResource;
 use Illuminate\Support\Facades\Storage;
+use App\Http\Requests\ProdutoStoreRequest;
+use App\Services\ProdutoService;
 use Symfony\Component\HttpFoundation\Response;
 
 class ProdutoController extends Controller
 {
 
-    private Produto $produto;
+    private ProdutoService $produto;
 
-    public function __construct(Produto $produto)
+    public function __construct(ProdutoService $produto)
     {
         $this->produto = $produto;
     }
 
-    /**
-     * Display a listing of the resource.
-     */
+
     public function index()
     {
-        $produtos = $this->produto::paginate(10);
+        
+        $produtos = $this->produto->paginate(10); // Ou $this->produto->allPaginated(10)
+    
+        return response()->json([
+            'data' => ProdutoResource::collection($produtos),
+            'meta' => [
+                'current_page' => $produtos->currentPage(),
+                'per_page' => $produtos->perPage(),
+                'total' => $produtos->total(),
+                'last_page' => $produtos->lastPage(),
+            ],
+            'links' => [
+                'first' => $produtos->url(1),
+                'last' => $produtos->url($produtos->lastPage()),
+                'prev' => $produtos->previousPageUrl(),
+                'next' => $produtos->nextPageUrl(),
+            ]
+        ], Response::HTTP_OK);
 
-        return response()->json(ProdutoResource::collection($produtos), Response::HTTP_OK);
+        return response()->json(ProdutoResource::collection(Produto::paginate(10)), Response::HTTP_OK);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function salvarProduto(ProdutoStoreRequest $request)
-    {
-        // $payload = $request->validated();
 
-        return response()->json(['ok'], 200);
+    public function store(ProdutoStoreRequest $request)
+    {
+        $payload = $request->validated();
+        
+        try {
+            
+            $produto = $this->produto->store($payload);
+
+            return response()->json(new ProdutoResource($produto));
+
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()]);
+        }
+        
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(Produto $produto)
+   
+    public function show(string $id)
     {
+        $produto = $this->produto->findById($id);
+
         return response()->json([
             'produto' => new ProdutoResource($produto)
         ], Response::HTTP_OK);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
+    
     public function update(Request $request, Produto $produto)
     {
-        //
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
+   
     public function destroy(Produto $produto)
     {
-        //
     }
 }

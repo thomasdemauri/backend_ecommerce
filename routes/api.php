@@ -11,8 +11,9 @@ Route::get('/user', function (Request $request) {
 
 Route::prefix('/v1')->group(function () {
     // Route::apiResource('produto', ProdutoController::class);
-    Route::get('/produtos', [ProdutoController::class, 'index'])->name('produtos.index');
-    Route::post('/save', [ProdutoController::class, 'salvarProduto'])->name('produtos.salvar');
+    Route::get('/produtos', [ProdutoController::class, 'index'])->name('produto.index');
+    Route::get('/produto/{id}', [ProdutoController::class, 'show'])->name('produto.show');
+    Route::post('/produto', [ProdutoController::class, 'store'])->name('produto.store');
 });
 
 Route::get('/', function () {

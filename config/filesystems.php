@@ -47,7 +47,7 @@ return [
             'report' => false,
         ],
 
-        's3' => [
+        'produtos' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),
             'secret' => env('AWS_SECRET_ACCESS_KEY'),
@@ -56,8 +56,13 @@ return [
             'url' => env('AWS_URL'),
             'endpoint' => env('AWS_ENDPOINT'),
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
-            'throw' => false,
+            'throw' => true,
             'report' => false,
+            'visibility' => 'private',
+            'root' => 'produtos',
+            'http' => [
+                'verify' => true
+            ]
         ],
 
     ],
