@@ -23,6 +23,12 @@ class ProdutoService
     {
         $produtos = $this->model->paginate($perPage);
 
+        $produtos->getCollection()->transform(function ($produto) {
+            $produto->arquivo_3d = Storage::disk('produtos')->temporaryUrl($produto->arquivo_3d, now()->addMinutes(10));
+            $produto->capa = Storage::disk('produtos')->temporaryUrl($produto->capa, now()->addMinutes(10));
+            return $produto;
+        });
+
         return $produtos;
     }
 
@@ -30,6 +36,9 @@ class ProdutoService
     {
         try {
             $produto = $this->model::findOrFail($id);
+            $produto->arquivo_3d = Storage::disk('produtos')->temporaryUrl($produto->arquivo_3d, now()->addMinutes(10));
+            $produto->capa = Storage::disk('produtos')->temporaryUrl($produto->capa, now()->addMinutes(10));
+
         } catch (Exception $e) {
             throw new ResourceNotFound();
         }
@@ -47,8 +56,8 @@ class ProdutoService
 
         try {
 
-            $objetoPath = $this->storeOnAWS($payload['arquivo_3d'], 'objetos');
-            $capaPath = $this->storeOnAWS($payload['capa'], 'capa');
+            $objetoPath = $this->storeOnAWS($payload['arquivo_3d/'], 'objetos');
+            $capaPath = $this->storeOnAWS($payload['capa/'], 'capa');
 
             $produto = $this->model::create([
                 'arquivo_3d'    => $objetoPath,
