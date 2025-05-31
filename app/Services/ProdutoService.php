@@ -24,7 +24,14 @@ class ProdutoService
         $produtos = $this->model->paginate($perPage);
 
         $produtos->getCollection()->transform(function ($produto) {
-            $produto->arquivo_3d = Storage::disk('produtos')->temporaryUrl($produto->arquivo_3d, now()->addMinutes(10));
+            $produto->arquivo_3d = Storage::disk('produtos')->temporaryUrl(
+                $produto->arquivo_3d, 
+                now()->addMinutes(10),
+                [
+                    'ResponseContentType' => 'model/gltf-binary',
+                    'ResponseContentDisposition' => 'inline',
+                ]
+            );
             $produto->capa = Storage::disk('produtos')->temporaryUrl($produto->capa, now()->addMinutes(10));
             return $produto;
         });
@@ -36,7 +43,14 @@ class ProdutoService
     {
         try {
             $produto = $this->model::findOrFail($id);
-            $produto->arquivo_3d = Storage::disk('produtos')->temporaryUrl($produto->arquivo_3d, now()->addMinutes(10));
+            $produto->arquivo_3d = Storage::disk('produtos')->temporaryUrl(
+                $produto->arquivo_3d, 
+                now()->addMinutes(10),
+                [
+                    'ResponseContentType' => 'model/gltf-binary',
+                    'ResponseContentDisposition' => 'inline',
+                ]
+            );
             $produto->capa = Storage::disk('produtos')->temporaryUrl($produto->capa, now()->addMinutes(10));
         } catch (Exception $e) {
             throw new ResourceNotFound();
