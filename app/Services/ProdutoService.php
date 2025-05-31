@@ -38,7 +38,6 @@ class ProdutoService
             $produto = $this->model::findOrFail($id);
             $produto->arquivo_3d = Storage::disk('produtos')->temporaryUrl($produto->arquivo_3d, now()->addMinutes(10));
             $produto->capa = Storage::disk('produtos')->temporaryUrl($produto->capa, now()->addMinutes(10));
-
         } catch (Exception $e) {
             throw new ResourceNotFound();
         }
@@ -51,14 +50,14 @@ class ProdutoService
         if (empty($payload)) {
             throw new Exception("Payload vazio.");
         }
-
         DB::beginTransaction();
-
+        
         try {
-
-            $objetoPath = $this->storeOnAWS($payload['arquivo_3d/'], 'objetos');
-            $capaPath = $this->storeOnAWS($payload['capa/'], 'capa');
-
+            
+            $objetoPath = $this->storeOnAWS(file:$payload['arquivo_3d'], subPasta:'objetos');
+            $capaPath = $this->storeOnAWS(file:$payload['capa'], subPasta:'capa');
+            
+            
             $produto = $this->model::create([
                 'arquivo_3d'    => $objetoPath,
                 'capa'          => $capaPath,
@@ -68,14 +67,14 @@ class ProdutoService
             ]);
             
             DB::commit();
-
+            
         } catch (Exception $e) {
             throw new Exception("Falha ao salvar novo produto. " . $e->getMessage());
         }
-
+        
         return $produto;
     }
-
+    
     private function storeOnAWS($file = null, string $subPasta = ''): string
     {
         if (empty($file)) {
@@ -83,15 +82,15 @@ class ProdutoService
         }
 
         $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
+        $path = $subPasta . '/' . $filename;
 
         try 
         {
-            $path = Storage::disk('produtos')->putFileAs($subPasta, $file, $filename);
+            $path = Storage::disk('produtos')->putFileAs('produtos', $file, $path);
 
         } catch (Exception $e) {
             throw new Exception("Falha ao salvar arquivo na S3. " . $e->getMessage());
         }
-
         return $path;
     }
 }

@@ -55,7 +55,7 @@ class ProdutoController extends Controller
         try {
             
             $produto = $this->produto->store($payload);
-
+            
             return response()->json(new ProdutoResource($produto));
 
         } catch (\Exception $e) {

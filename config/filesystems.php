@@ -59,9 +59,9 @@ return [
             'throw' => true,
             'report' => false,
             'visibility' => 'private',
-            'root' => 'produtos',
+            'root' => '',
             'http' => [
-                'verify' => true
+                'verify' => false
             ]
         ],
 
