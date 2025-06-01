@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use Illuminate\Validation\Rules\File;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ProdutoStoreRequest extends FormRequest
@@ -22,11 +23,12 @@ class ProdutoStoreRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'arquivo_3d'    => 'required|file',
-            'capa'          => 'required',
+            'arquivo_3d'    => ['required', File::types(['glb'])->max('10mb')],
+            'capa'          => ['required', File::image()],
             'titulo'        => 'required|string|max:64',
             'descricao'     => 'required|min:10',
             'valor'         => 'required|decimal:0,2'
         ];
     }
 }
+    
