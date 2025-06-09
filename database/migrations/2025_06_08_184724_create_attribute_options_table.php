@@ -17,8 +17,8 @@ return new class extends Migration
         Schema::create('attribute_options', function (Blueprint $table) {
             $table->id();
             $table->foreignId('attribute_id')->constrained('attributes')->onDelete('cascade');
-            $table->string('label', 100);
-            $table->string('value', 100);
+            $table->string('label', 100);   // Ex 110 Volys
+            $table->string('value', 100);   // 110v
             $table->timestamps();
         });
     }

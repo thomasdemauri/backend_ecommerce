@@ -18,7 +18,7 @@ return new class extends Migration
             $table->boolean('required')->default(false);
 
             // Checkbox, radio, select e multiselect ficam como 'options'
-            $table->enum('type', ['text', 'integer', 'decimal', 'textarea', 'options'])->default('text');  
+            $table->enum('type', ['text', 'number', 'options'])->default('text');  
             $table->timestamps();
         });
     }
