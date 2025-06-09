@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('product_id')->constrained('products')->onDelete('cascade');
             $table->foreignId('attribute_id')->constrained('attributes')->onDelete('cascade');
+            $table->foreignId('attribute_option_id')->nullable()->constrained('attribute_options')->onDelete('cascade');
             $table->string('value', 100);    // Pode vir de um campo normal ou de um select, radio e etc...
             
             $table->timestamps();

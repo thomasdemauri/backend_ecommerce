@@ -12,4 +12,14 @@ class Attribute extends Model
         'required',
         'type'
     ];
+
+    public function category()
+    {
+        return $this->belongsTo(Category::class);
+    }
+
+    public function attributeOptions()
+    {
+        return $this->hasMany(AttributeOption::class);
+    }
 }

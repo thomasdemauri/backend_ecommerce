@@ -12,4 +12,9 @@ class Store extends Model
         'slug',
         'store_image_url'
     ];
+
+    public function products()
+    {
+        return $this->hasMany(Product::class);
+    }
 }

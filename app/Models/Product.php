@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Product extends Model
 {
     protected $fillable = [
+        'store_id',
         'name',
         'slug',
         'description',
@@ -20,4 +21,24 @@ class Product extends Model
         'width',
         'height',
     ];
+
+    public function category()
+    {
+        return $this->belongsTo(Category::class);
+    }
+
+    public function productAttributeValues()
+    {
+        return $this->hasMany(ProductAttributeValue::class);
+    }
+
+    public function productImages()
+    {
+        return $this->hasMany(ProductImage::class);
+    }
+
+    public function store()
+    {
+        return $this->belongsTo(Store::class);
+    }
 }
