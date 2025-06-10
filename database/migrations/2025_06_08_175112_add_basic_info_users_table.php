@@ -21,8 +21,9 @@ return new class extends Migration
             $table->string('city', 100)->nullable();
             $table->string('state', 2)->nullable();                         // SP, MG, etc...
             $table->string('postal_code', 10)->nullable();
-            $table->string('country', 2)->nullable();                       // ISO alpha-2
+            $table->string('country', 3)->nullable();                       // ISO alpha-2
             $table->enum('gender', ['male', 'female', 'other'])->nullable();
+            $table->boolean('is_seller')->default(false);
         });
     }
 

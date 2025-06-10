@@ -24,11 +24,23 @@ class UserFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
+            
+            'full_name' => fake()->name(),
+            'tax_id' => $this->faker->numerify('###########'),
+            'phone' => $this->faker->phoneNumber,
+            'address_line1' => $this->faker->streetAddress,
+            'address_line2' => $this->faker->secondaryAddress,
+            'neighborhood' => $this->faker->word, 
+            'city' => $this->faker->city,
+            'state' => $this->faker->randomElement(['SP', 'MG', 'PR', 'BH']),
+            'postal_code' => $this->faker->postcode,
+            'country' => $this->faker->randomElement(['BR', 'EUA', 'JP', 'AUS']),
+            'gender' => $this->faker->randomElement(['male', 'female', 'other']),
+            'is_seller' => $this->faker->boolean
         ];
     }
 
@@ -39,6 +51,16 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'email_verified_at' => null,
+        ]);
+    }
+
+    /**
+     * Muda estado de vendedor para true quando chamado
+     */
+    public function seller(): Factory
+    {
+        return $this->state(fn () => [
+            'is_seller' => true,
         ]);
     }
 }
