@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Exceptions\AttributeDoesNotExistsForCategory;
+use App\Exceptions\OptionDoesNotExistsForAttribute;
 use App\Exceptions\RequiredAttributesMissing;
 use App\Models\Product;
 use App\Models\Category;
@@ -20,6 +21,9 @@ class ProductService
 
         try {
 
+            $category = Category::with('attributes')->findOrFail($payload['category_id']);
+            $attributes = $category->attributes;
+
             $product = Product::create([
                 'store_id' => $payload['store_id'],
                 'name' => $payload['name'],
@@ -32,9 +36,6 @@ class ProductService
                 'category_id' => $payload['category_id'],
             ]);
     
-            $category = Category::with('attributes')->findOrFail($payload['category_id']);
-            $attributes = $category->attributes;
-            
             // Obtem todos os atributos obrigatorio para verificar mais tarde se foi enviado no payload todos.
             $requiredAttributesIds = $attributes->where('required', true)->pluck('id')->toArray();
 
@@ -53,7 +54,7 @@ class ProductService
                 $selectedOption = $attribute->attributeOptions->firstWhere('id', $attributeRequest['attribute_option_id']);
                 
                 if (!$selectedOption) {
-                    throw new Exception('Option does not exist for this category [' . $category->name . ']');
+                    throw new OptionDoesNotExistsForAttribute($attributeRequest['attribute_option_id'], $attribute->id);
                 }
                 
                 $product->productAttributeValues()->create([
@@ -61,6 +62,7 @@ class ProductService
                     'attribute_option_id' => $selectedOption->id,
                     'value' => $selectedOption->value
                 ]);
+
             }
             
             $checkRequiredAttributes = array_diff($requiredAttributesIds, $attributesIdsFromRequest);
