@@ -19,7 +19,7 @@ class StoreFactory extends Factory
     {
         return [
             'user_id' => User::factory()->seller(),
-            'store_name' => $this->faker->company,
+            'store_name' => $this->faker->word,
             'slug' => $this->faker->unique()->slug,
             'store_image_url' => $this->faker->imageUrl(640, 480, 'business', true, 'store'),
         ];
