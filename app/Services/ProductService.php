@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Exceptions\AttributeDoesNotExistsForCategory;
+use App\Exceptions\RequiredAttributesMissing;
 use App\Models\Product;
 use App\Models\Category;
 use Exception;
@@ -30,48 +32,45 @@ class ProductService
                 'category_id' => $payload['category_id'],
             ]);
     
-            $category = Category::findOrFail($payload['category_id']);
-    
+            $category = Category::with('attributes')->findOrFail($payload['category_id']);
             $attributes = $category->attributes;
-
-            // Verifica se todos os atributos OBRIGATORIOS foram enviado com sucesso
+            
+            // Obtem todos os atributos obrigatorio para verificar mais tarde se foi enviado no payload todos.
             $requiredAttributesIds = $attributes->where('required', true)->pluck('id')->toArray();
 
             $attributesIdsFromRequest = [];
-
-            foreach ($payload['attributes'] as $attributeRequest) {
-                $attributesIdsFromRequest[] = $attributeRequest['attribute_id'];
-            }
             
-            $checkRequiredAttributes = array_diff($requiredAttributesIds, $attributesIdsFromRequest);
-
-            // Se tiver itens aqui, significa que atributos requiridos estao faltando
-            if (!empty($checkRequiredAttributes)) {
-                throw new Exception('Required attributes are missing.');
-            }
-    
             foreach ($payload['attributes'] as $attributeRequest) {
-    
-                $attribute = $attributes->firstWhere('id', $attributeRequest['attribute_id']);
-
-                if (!$attribute) {
-                    throw new Exception('Attribute does not exist for this category [' . $category->name . ']');
-                }
-    
                 
-                $selectedOption = $attribute->attributeOptions->firstWhere('id', $attributeRequest['attribute_option_id']);
+                $attributesIdsFromRequest[] = $attributeRequest['attribute_id'];
+                
+                $attribute = $attributes->firstWhere('id', $attributeRequest['attribute_id']);
+                
+                if (!$attribute) {
+                    throw new AttributeDoesNotExistsForCategory($attributeRequest['attribute_id']);
+                }
 
+                $selectedOption = $attribute->attributeOptions->firstWhere('id', $attributeRequest['attribute_option_id']);
+                
                 if (!$selectedOption) {
                     throw new Exception('Option does not exist for this category [' . $category->name . ']');
                 }
-    
+                
                 $product->productAttributeValues()->create([
                     'attribute_id' => $attribute->id,
                     'attribute_option_id' => $selectedOption->id,
                     'value' => $selectedOption->value
                 ]);
             }
-    
+            
+            $checkRequiredAttributes = array_diff($requiredAttributesIds, $attributesIdsFromRequest);
+            
+            // Se tiver itens aqui, significa que atributos requiridos estao faltando.
+            if (!empty($checkRequiredAttributes)) {
+                $missingIds = implode(',', $checkRequiredAttributes);
+                throw new RequiredAttributesMissing($missingIds);
+            }
+            
             DB::commit();
             
             return $product->load('productAttributeValues.attributeOption.attribute');
