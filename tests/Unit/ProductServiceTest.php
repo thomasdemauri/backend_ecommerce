@@ -255,6 +255,9 @@ class ProductServiceTest extends TestCase
 
     }
 
+    /**
+     * Espera exceção quando categoria não existe.
+     */
     public function test_store_throws_excepetion_when_invalid_category()
     {
         $this->expectException(ModelNotFoundException::class);
