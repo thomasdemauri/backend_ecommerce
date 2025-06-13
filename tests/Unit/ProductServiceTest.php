@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Exceptions\AttributeDoesNotExistsForCategory;
 use Tests\TestCase;
 use App\Models\Store;
 use App\Models\Category;
@@ -27,12 +28,13 @@ class ProductServiceTest extends TestCase
         $category = Category::factory()->create();
 
         $attributes = Attribute::factory()->count(3)->create([
-            'category_id' => $category->id
+            'category_id' => $category->id,
+            'required' => true
         ]);
         
         foreach ($attributes as $attribute) {
             AttributeOption::factory()->count(2)->create([
-                'attribute_id' => $attribute->id
+                'attribute_id' => $attribute->id,
             ]);
         }
                 
@@ -41,9 +43,9 @@ class ProductServiceTest extends TestCase
         return $category;
     }
 
-    private function generatePayload(Store $store, Category $category)
-    {        
-        $selectedOptions = $category->attributes->map(function ($attribute) {
+    private function generateAttributesPayload(Category $category)
+    {
+        return $category->attributes->map(function ($attribute) {
 
             $randomOption = $attribute->attributeOptions->random();
     
@@ -53,6 +55,13 @@ class ProductServiceTest extends TestCase
             ];
 
         })->toArray();
+        
+    }
+
+    private function generatePayload(Store $store, Category $category)
+    {        
+        
+        $selectedOptions = $this->generateAttributesPayload($category);
 
         return [
             'store_id' => $store->id,
@@ -94,13 +103,38 @@ class ProductServiceTest extends TestCase
         $this->assertEquals('Monitor gamer 144Hz OLED', $product->name);
     }
 
-    public function test_store_product_unsuccessfully_with_invalid_attributes(): void 
+    public function test_store_product_throws_attribute_does_not_exists_for_category_exception(): void 
     {
+
+        $this->expectException(AttributeDoesNotExistsForCategory::class);
+
         $productService = new ProductService();
 
         $store = Store::factory()->create();
         $category = $this->createCategoryWithAttributes();
 
+        $invalidAttribute = Attribute::factory()->create();
 
+        $payload = [
+            'store_id' => $store->id,
+            'name' => 'Monitor gamer 144Hz OLED',
+            'description' => 'O melhor para o sua gameplay',
+            'price' => 1459.99,
+            'stock_quantity' => 60,
+            'is_active' => true,
+            'category_id' => $category->id,
+            'attributes' => [
+                [
+                    'attribute_id' => $invalidAttribute->id,
+                    'attribute_option_id' => 1
+                ]
+            ]
+        ];
+
+        $productService->store($payload);
+    }
+
+    public function test_store_product_throws_option_does_not_exists_for_attribute_exception(): void {
+        
     }
 }
