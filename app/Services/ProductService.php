@@ -13,7 +13,20 @@ use Illuminate\Support\Str;
 
 class ProductService 
 {
-
+    /**
+     * Cria produto com seus devidos atributos.
+     * 
+     * @param array $payload Contem os dados do produto
+     * e de seus atributos com suas respectivas opções.
+     * 
+     * @throws AttributeDoesNotExistsForCategory Lança exceção quando atributo não corresponder a categoria.
+     * 
+     * @throws OptionDoesNotExistsForAttribute Lança exceção quando opção não corresponder a atributo.
+     * 
+     * @throws RequiredAttributesMissing Lança exceção quando estiver faltando 
+     * atributo requerido no corpo da requisição.
+     * 
+     */
     public function store(array $payload)
     {
 
@@ -35,16 +48,9 @@ class ProductService
                 'is_active' => $payload['is_active'],
                 'category_id' => $payload['category_id'],
             ]);
-    
-            // Obtem todos os atributos obrigatorio para verificar mais tarde se foi enviado no payload todos.
-            $requiredAttributesIds = $attributes->where('required', true)->pluck('id')->toArray();
-
-            $attributesIdsFromRequest = [];
             
             foreach ($payload['attributes'] as $attributeRequest) {
-                
-                $attributesIdsFromRequest[] = $attributeRequest['attribute_id'];
-                
+                                
                 $attribute = $attributes->firstWhere('id', $attributeRequest['attribute_id']);
                 
                 if (!$attribute) {
@@ -65,13 +71,8 @@ class ProductService
 
             }
             
-            $checkRequiredAttributes = array_diff($requiredAttributesIds, $attributesIdsFromRequest);
-            
-            // Se tiver itens aqui, significa que atributos requiridos estao faltando.
-            if (!empty($checkRequiredAttributes)) {
-                $missingIds = implode(',', $checkRequiredAttributes);
-                throw new RequiredAttributesMissing($missingIds);
-            }
+            $requiredAttributesIds = $attributes->where('required', true)->pluck('id')->toArray();
+            $this->checkRequiredAttributesInPayload($payload['attributes'], $requiredAttributesIds);
             
             DB::commit();
             
@@ -82,7 +83,34 @@ class ProductService
             throw $exception;
         }
 
-
     }
+
+    /**
+     * Verifica os IDs requeridos e compara com os ids presente no payload.
+     * 
+     * Caso esteja faltando algum lança exceção, senão retorna false.
+     * 
+     * @param array $attributesPayload Array contendo os atributos do payload.
+     * @param array $requiredAttributes Array contendo os atributos requeridos.
+     * 
+     * @return false Caso nenhum atributo requerido esteja faltando.
+     * 
+     * @throws RequiredAttributesMissing Quando estiver faltando atributos requeridos.
+     */
+    private function checkRequiredAttributesInPayload(array $attributesPayload, array $requiredAttributes)
+    {
+        $attributesIdsFromPayload = array_map(function ($attribute) {
+            return $attribute['attribute_id'];
+        }, $attributesPayload);
+
+        $missingRequiredAttributeIds = array_diff($requiredAttributes, $attributesIdsFromPayload);
+
+        if (!empty($missingRequiredAttributeIds)) {
+            $ids = implode(',', $missingRequiredAttributeIds);
+            throw new RequiredAttributesMissing($ids);
+        }
+
+        return false;
+    }   
 
 }
