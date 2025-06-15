@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\ProductAttributeValue;
 
+use App\Http\Resources\Attribute\AttributeSummaryResource;
 use App\Http\Resources\AttributeOption\AttributeOptionResource;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -16,8 +17,7 @@ class ProductAttributeValueResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'id' => $this->id,
-            'value' => $this->value,
+            'attribute' => new AttributeSummaryResource($this->whenLoaded('attribute')),
             'option' => new AttributeOptionResource($this->whenLoaded('attributeOption'))
         ];
     }

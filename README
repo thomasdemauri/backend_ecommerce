@@ -1,2 +1,3 @@
-Criar service do produto e fazer testes
-Depois fazer testes de API
+Retornar no service um resource do produto e um resource das opcoes preenchidas
+
+Separar por resources

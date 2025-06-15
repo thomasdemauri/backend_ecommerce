@@ -17,8 +17,6 @@ class AttributeSummaryResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name,
-            'required' => $this->required,
-            'type' => $this->type
         ];
     }
 }

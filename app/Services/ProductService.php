@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Exceptions\AttributeDoesNotExistsForCategory;
 use App\Exceptions\OptionDoesNotExistsForAttribute;
 use App\Exceptions\RequiredAttributesMissing;
+use App\Http\Resources\Product\ProductResource;
+use App\Http\Resources\Product\ProductSellerResource;
 use App\Models\Product;
 use App\Models\Category;
 use Exception;
@@ -76,7 +78,10 @@ class ProductService
             
             DB::commit();
             
-            return $product->load('productAttributeValues.attributeOption.attribute');
+            $product->load('productAttributeValues.attributeOption', 'productAttributeValues.attribute', 'store');
+            $product->setRelation('category', $category);   // Evita carregar novamente
+
+            return new ProductSellerResource($product);
 
         } catch (Exception $exception) {
             DB::rollBack();
