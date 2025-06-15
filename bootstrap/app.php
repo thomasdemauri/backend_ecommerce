@@ -1,11 +1,12 @@
 <?php
 
-use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use Illuminate\Http\Request;
-use Illuminate\Http\Response;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -18,10 +19,10 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions) {
 
-        $exceptions->renderable(function (ModelNotFoundException $e, Request $request) {
+        $exceptions->renderable(function (NotFoundHttpException $e, Request $request) {
             if ($request->wantsJson()) {
                 return response()->json([
-                    'message' => 'Recurso não encontrado'
+                    'message' => 'Resource not found.'
                 ], Response::HTTP_NOT_FOUND);
             }
         });
