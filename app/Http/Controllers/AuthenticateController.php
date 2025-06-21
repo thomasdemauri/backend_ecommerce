@@ -30,7 +30,7 @@ class AuthenticateController extends Controller
         } catch (AuthenticateFailedException $e) {
 
             return response()->json([
-                'Credenciais inválidas.'
+                'message' => 'Credenciais inválidas.'
             ], Response::HTTP_UNAUTHORIZED);
 
         }
