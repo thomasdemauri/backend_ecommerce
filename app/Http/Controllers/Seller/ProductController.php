@@ -3,8 +3,11 @@
 namespace App\Http\Controllers\Seller;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Product\StoreProductRequest;
+use App\Http\Resources\Product\ProductSellerResource;
 use App\Services\ProductService;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 
 class ProductController extends Controller
 {
@@ -16,10 +19,15 @@ class ProductController extends Controller
         $this->productService = $productService;
     }
 
-    public function store(Request $request)
+    public function store(StoreProductRequest $request)
     {
-        $payload = [];
+        $productData = $request->validated();
         
-        $this->productService->store($payload);
+        $product = $this->productService->store($productData);
+
+        return response()->json([
+            'message' => 'Produto criado com sucesso',
+            'product' => new ProductSellerResource($product)
+        ], Response::HTTP_CREATED);
     }
 }

@@ -2,17 +2,19 @@
 
 namespace App\Services;
 
-use App\Exceptions\AttributeDoesNotExistsForCategory;
-use App\Exceptions\OptionDoesNotExistsForAttribute;
-use App\Exceptions\RequiredAttributesMissing;
-use App\Http\Resources\Product\ProductResource;
-use App\Http\Resources\Product\ProductSellerResource;
+use Exception;
+use App\Models\User;
+use App\Models\Store;
 use App\Models\Product;
 use App\Models\Category;
-use Exception;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
+use App\Exceptions\RequiredAttributesMissing;
+use App\Http\Resources\Product\ProductResource;
+use App\Exceptions\OptionDoesNotExistsForAttribute;
+use App\Exceptions\AttributeDoesNotExistsForCategory;
+use App\Http\Resources\Product\ProductSellerResource;
 
 class ProductService
 {
@@ -50,11 +52,9 @@ class ProductService
 
         DB::beginTransaction();
 
-        $seller = Auth::user();
-
+        $seller = User::with('store')->findOrFail(Auth::user()->id);
+        // dd($seller->store->id);
         try {
-
-            $this->sellerService->ensureIsNotAlreadyASeller($seller);
             
             $category = Category::with('attributes')->findOrFail($payload['category_id']);
             $attributes = $category->attributes;
@@ -62,12 +62,11 @@ class ProductService
             $product = Product::create([
                 'store_id' => $seller->store->id,
                 'name' => $payload['name'],
-                'slug' => Str::slug($payload['name'] . '-' . $payload['store_id']),
+                'slug' => Str::slug($payload['name'] . '-' . $seller->store->id),
                 'description' => $payload['description'],
                 'price' => $payload['price'],
                 'sku' => $payload['sku'] ?? '',
                 'stock_quantity' => $payload['stock_quantity'],
-                'is_active' => $payload['is_active'],
                 'category_id' => $payload['category_id'],
             ]);
             
