@@ -1,48 +1,20 @@
 <?php
 
-use Illuminate\Http\Request;
-use Illuminate\Http\Response;
-use App\Services\ProductService;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\ProdutoController;
+use App\Http\Controllers\User\UserController;
+use App\Http\Controllers\AuthenticateController;
+use App\Http\Controllers\Seller\ProductController;
+use App\Http\Controllers\Seller\SellerController;
 
-Route::get('/test', function () {
-    $service = new ProductService();
 
-    $payload = [
-        'store_id' => 2,
-        'name' => 'Computador gamer i9-12700H GTX9',
-        'description' => 'Jogue GTA VI e muito mais!',
-        'price' => 7850.56,
-        'stock_quantity' => 15,
-        'is_active' => true,
-        'category_id' => 2,
+Route::post('/login', [AuthenticateController::class, 'authenticate'])->name('login');
+Route::post('/logout', [AuthenticateController::class, 'logout']);
 
-        'attributes' => [
-            [
-                'attribute_id' => 2,    // Tipo tecido
-                'attribute_option_id' => 7, // Algodao
-            ],
-            [
-                'attribute_id' => 3,    // Tipo tecido
-                'attribute_option_id' => 9, // Algodao
-            ],
-            // [
-            //     'attribute_id' => 2,
-            //     'attribute_option_id' => 5,
-            // ],
-            // [
-            //     'attribute_id' => 3,
-            //     'attribute_option_id' => 7,
-            // ],
-        ],
+Route::post('/new-user', [UserController::class, 'store'])->name('user.store');
 
-    ];
 
-    $product = $service->store($payload);
-
-    return response()->json([
-        'product' => $product
-    ], Response::HTTP_CREATED);
-    
+// Com sanctum
+Route::middleware('auth:sanctum')->group(function (){
+    Route::post('/become-a-seller', [SellerController::class, 'becomeASeller'])->name('seller.become_a_seller');
+    Route::post('/products', [ProductController::class, 'store'])->name('product.store');
 });

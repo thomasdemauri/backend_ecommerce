@@ -1,5 +1,6 @@
 <?php
 
+use App\Exceptions\UserIsAlreadyASeller;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Foundation\Application;
@@ -19,12 +20,17 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions) {
 
-        $exceptions->renderable(function (NotFoundHttpException $e, Request $request) {
-            if ($request->wantsJson()) {
+        $exceptions->renderable(function (NotFoundHttpException $e) {
                 return response()->json([
                     'message' => 'Resource not found.'
                 ], Response::HTTP_NOT_FOUND);
-            }
         });
+
+        $exceptions->renderable(function (UserIsAlreadyASeller $e) {
+            return response()->json([
+                'message' => $e->getMessage()
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        });
+
 
     })->create();

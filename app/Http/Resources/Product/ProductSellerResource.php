@@ -24,6 +24,7 @@ class ProductSellerResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'store_id' => $this->store->id,
             'name' => $this->name,
             'slug' => $this->slug,
             'description' => $this->description,
@@ -35,11 +36,9 @@ class ProductSellerResource extends JsonResource
             'height' => $this->height,
             'sku'=> $this->sku,
             'isActive' => $this->is_active,
-
-            
+      
             // Relations
             'category' => new CategorySummaryResource($this->whenLoaded('category')),
-            'store' => new StoreResource($this->whenLoaded('store')),
             'attributes' => ProductAttributeValueResource::collection($this->whenLoaded('productAttributeValues'))
         ];
     }

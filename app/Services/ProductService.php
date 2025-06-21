@@ -10,11 +10,27 @@ use App\Http\Resources\Product\ProductSellerResource;
 use App\Models\Product;
 use App\Models\Category;
 use Exception;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
-class ProductService 
+class ProductService
 {
+
+    private StoreService $storeService;
+    private SellerService $sellerService;
+
+    public function __construct(StoreService $storeService, SellerService $sellerService)
+    {
+        $this->storeService = $storeService;
+        $this->sellerService = $sellerService;
+    }
+
+    public function detail(string $id)
+    {
+        $product = Product::findOrFail($id);
+    }
+
     /**
      * Cria produto com seus devidos atributos.
      * 
@@ -34,13 +50,17 @@ class ProductService
 
         DB::beginTransaction();
 
+        $seller = Auth::user();
+
         try {
 
+            $this->sellerService->ensureIsNotAlreadyASeller($seller);
+            
             $category = Category::with('attributes')->findOrFail($payload['category_id']);
             $attributes = $category->attributes;
 
             $product = Product::create([
-                'store_id' => $payload['store_id'],
+                'store_id' => $seller->store->id,
                 'name' => $payload['name'],
                 'slug' => Str::slug($payload['name'] . '-' . $payload['store_id']),
                 'description' => $payload['description'],
