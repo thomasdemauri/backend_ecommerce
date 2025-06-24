@@ -26,17 +26,23 @@ class StoreProductRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'max:150', 'string'],
-            'description' => ['required'],
-            'price' => ['required', 'decimal:2'],
-            'sku' => ['nullable', 'max:50', 'string'],
-            'stock_quantity' => ['integer', 'min:0', 'nullable'],
-            'category_id' => ['required', 'exists:categories,id'],
-            'weight' => ['nullable'],
-            'length' => ['nullable'],
-            'width' => ['nullable'],
-            'height' => ['nullable'],
+            'product' => ['required', 'array'],
+
+            'product.name' => ['required', 'max:150', 'string'],
+            'product.description' => ['required'],
+            'product.price' => ['required', 'decimal:2'],
+            'product.sku' => ['nullable', 'max:50', 'string'],
+            'product.stock_quantity' => ['integer', 'min:0', 'sometimes'],
+            'product.is_active' => ['sometimes', 'boolean'],
+            'product.category_id' => ['required', 'exists:categories,id'],
+            'product.weight' => ['nullable'],
+            'product.length' => ['nullable'],
+            'product.width' => ['nullable'],
+            'product.height' => ['nullable'],
+
             'attributes' => ['required', 'array', 'min:1'],
+            'attributes.*.attribute_id' => ['required', 'exists:attributes,id'],
+            'attributes.*.attribute_option_id' => ['required', 'exists:attribute_options,id'],
         ];
     }
 }
