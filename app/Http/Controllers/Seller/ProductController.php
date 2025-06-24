@@ -8,6 +8,7 @@ use App\Http\Resources\Product\ProductSellerResource;
 use App\Services\ProductService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Auth;
 
 class ProductController extends Controller
 {
@@ -21,9 +22,9 @@ class ProductController extends Controller
 
     public function store(StoreProductRequest $request)
     {
-        $productData = $request->validated();
+        $user= Auth::user();
         
-        $product = $this->productService->store($productData);
+        $product = $this->productService->storeWithAttributes($request->validated(), $user);
 
         return response()->json([
             'message' => 'Produto criado com sucesso',
