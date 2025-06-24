@@ -4,110 +4,144 @@ namespace App\Services;
 
 use Exception;
 use App\Models\User;
-use App\Models\Store;
 use App\Models\Product;
 use App\Models\Category;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Auth;
 use App\Exceptions\RequiredAttributesMissing;
-use App\Http\Resources\Product\ProductResource;
 use App\Exceptions\OptionDoesNotExistsForAttribute;
 use App\Exceptions\AttributeDoesNotExistsForCategory;
-use App\Http\Resources\Product\ProductSellerResource;
 
 class ProductService
 {
 
     private StoreService $storeService;
     private SellerService $sellerService;
+    private CategoryService $categoryService;
 
-    public function __construct(StoreService $storeService, SellerService $sellerService)
+    private $optionalFields = [
+        'is_active',
+        'weight',
+        'length',
+        'width',
+        'height',
+        'stock_quantity',
+        'sku'
+    ];
+
+    public function __construct(
+        StoreService $storeService, 
+        SellerService $sellerService,
+        CategoryService $categoryService
+    )
     {
         $this->storeService = $storeService;
         $this->sellerService = $sellerService;
+        $this->categoryService = $categoryService;
     }
 
     public function detail(string $id)
     {
-        $product = Product::findOrFail($id);
+        $product = Product::with([
+            'productAttributeValues.attributeOption', 
+            'productAttributeValues.attribute',
+            'store',
+            'category'
+        ])->findOrFail($id);
+
+        return $product;
     }
 
     /**
      * Cria produto com seus devidos atributos.
      * 
      * @param array $payload Contem os dados do produto
-     * e de seus atributos com suas respectivas opções.
+     * e de seus atributos com suas respectivas opções. 
+     * 
+     * @param User $user Usuário autenticado
+     * 
+     * @throws RequiredAttributesMissing Lança exceção quando estiver faltando 
+     * atributo requerido no corpo da requisição.
+     * 
+     * @return Product Retorna produto criado.
+     */
+    public function storeWithAttributes(array $payload, User $user): Product
+    {
+        DB::beginTransaction();
+
+        $seller = $this->sellerService->getAuthenticatedSeller($user->id);
+        
+        try {
+            
+            $category = $this->categoryService->getCategoryWithAttributes($payload['product']['category_id']);
+            $product = $this->createProductWithoutAttributes($payload['product'], $seller);
+            
+            $this->saveAttributes($product, $category, $payload['attributes']);
+            $this->checkRequiredAttributesInPayload($payload['attributes'], $category);
+            
+            DB::commit();
+            
+            $product->refresh();
+            $product->load(['productAttributeValues.attribute',
+                'productAttributeValues.attributeOption',
+                'store'
+            ]);
+            $product->setRelation('category', $category);   // Evita carregar novamente
+            
+            return $product;
+
+        } catch (Exception $exception) {
+
+            DB::rollBack();
+            throw $exception;
+
+        }
+
+    }
+
+    /**
+     * Salva os atributos do produto.
+     * 
+     * @param Product $product Model no qual os atributos serão salvos.
+     * 
+     * @param Category $category Categoria do produto.
+     * 
+     * @param array $attributes Atributos vindo do payload.
+     * 
+     * @return void Apenas salva no model.
      * 
      * @throws AttributeDoesNotExistsForCategory Lança exceção quando atributo não corresponder a categoria.
      * 
      * @throws OptionDoesNotExistsForAttribute Lança exceção quando opção não corresponder a atributo.
      * 
-     * @throws RequiredAttributesMissing Lança exceção quando estiver faltando 
-     * atributo requerido no corpo da requisição.
-     * 
      */
-    public function store(array $payload)
+    private function saveAttributes(Product $product, Category $category, array $attributes): void
     {
-
-        DB::beginTransaction();
-
-        $seller = User::with('store')->findOrFail(Auth::user()->id);
-        // dd($seller->store->id);
-        try {
-            
-            $category = Category::with('attributes')->findOrFail($payload['category_id']);
-            $attributes = $category->attributes;
-
-            $product = Product::create([
-                'store_id' => $seller->store->id,
-                'name' => $payload['name'],
-                'slug' => Str::slug($payload['name'] . '-' . $seller->store->id),
-                'description' => $payload['description'],
-                'price' => $payload['price'],
-                'sku' => $payload['sku'] ?? '',
-                'stock_quantity' => $payload['stock_quantity'],
-                'category_id' => $payload['category_id'],
-            ]);
-            
-            foreach ($payload['attributes'] as $attributeRequest) {
+        foreach ($attributes as $attributeRequest) {
                                 
-                $attribute = $attributes->firstWhere('id', $attributeRequest['attribute_id']);
-                
-                if (!$attribute) {
-                    throw new AttributeDoesNotExistsForCategory($attributeRequest['attribute_id']);
-                }
+            $attribute = $category->attributes->firstWhere('id', $attributeRequest['attribute_id']);
+            
+            if (!$attribute) {
+                throw new AttributeDoesNotExistsForCategory($attributeRequest['attribute_id']);
+            }
 
-                $selectedOption = $attribute->attributeOptions->firstWhere('id', $attributeRequest['attribute_option_id']);
-                
-                if (!$selectedOption) {
-                    throw new OptionDoesNotExistsForAttribute($attributeRequest['attribute_option_id'], $attribute->id);
-                }
-                
-                $product->productAttributeValues()->create([
-                    'attribute_id' => $attribute->id,
-                    'attribute_option_id' => $selectedOption->id,
-                    'value' => $selectedOption->value
-                ]);
-
+            $selectedOption = $attribute->attributeOptions->firstWhere('id', $attributeRequest['attribute_option_id']);
+            
+            if (!$selectedOption) {
+                throw new OptionDoesNotExistsForAttribute($attributeRequest['attribute_option_id'], $attribute->id);
             }
             
-            $requiredAttributesIds = $attributes->where('required', true)->pluck('id')->toArray();
-            $this->checkRequiredAttributesInPayload($payload['attributes'], $requiredAttributesIds);
-            
-            DB::commit();
-            
-            $product->load('productAttributeValues.attributeOption', 'productAttributeValues.attribute', 'store');
-            $product->setRelation('category', $category);   // Evita carregar novamente
+            $product->productAttributeValues()->create([
+                'attribute_id' => $attribute->id,
+                'attribute_option_id' => $selectedOption->id,
+                'value' => $selectedOption->value
+            ]);
 
-            return new ProductSellerResource($product);
-
-        } catch (Exception $exception) {
-            DB::rollBack();
-            throw $exception;
         }
 
+        return;
     }
+
 
     /**
      * Verifica os IDs requeridos e compara com os ids presente no payload.
@@ -121,20 +155,60 @@ class ProductService
      * 
      * @throws RequiredAttributesMissing Quando estiver faltando atributos requeridos.
      */
-    private function checkRequiredAttributesInPayload(array $attributesPayload, array $requiredAttributes)
+    private function checkRequiredAttributesInPayload(array $attributesPayload, Category $category): void
     {
+
+        $requiredAttributesIds = $category->attributes->where('required', true)->pluck('id')->toArray();
+
         $attributesIdsFromPayload = array_map(function ($attribute) {
             return $attribute['attribute_id'];
         }, $attributesPayload);
 
-        $missingRequiredAttributeIds = array_diff($requiredAttributes, $attributesIdsFromPayload);
+        $missingRequiredAttributeIds = array_diff($requiredAttributesIds, $attributesIdsFromPayload);
 
         if (!empty($missingRequiredAttributeIds)) {
             $ids = implode(',', $missingRequiredAttributeIds);
             throw new RequiredAttributesMissing($ids);
         }
 
-        return false;
-    }   
+        return;
+    } 
+    
+    /**
+     * Cria apenas o produtos sem os atributos.
+     */
+    private function createProductWithoutAttributes(array $productData, User $seller): Product
+    {
+        $data = [
+            'store_id' => $seller->store->id,
+            'name' => $productData['name'],
+            'slug' => Str::slug($productData['name'] . '-' . $seller->store->id),
+            'description' => $productData['description'],
+            'price' => $productData['price'],
+            'category_id' => $productData['category_id'],
+        ];
+
+        $data+= $this->filterOptionalFields($productData);
+
+        return Product::create($data);
+    }
+    
+    /**
+     * Retorna apenas as chaves que estão presentes no payload e 
+     * são opcionais também.
+     */
+    private function filterOptionalFields(array $productData): array
+    {
+        $fields = [];
+
+        foreach ($this->optionalFields as $field) {
+            if (array_key_exists($field, $productData)) {
+                $fields[$field] = $productData[$field];
+            }
+        }
+
+        return $fields;
+    }
+
 
 }
