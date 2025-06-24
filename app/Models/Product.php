@@ -25,6 +25,10 @@ class Product extends Model
         'height',
     ];
 
+    protected $casts = [
+        'is_active' => 'boolean',
+    ];
+
     public function category()
     {
         return $this->belongsTo(Category::class);
