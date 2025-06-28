@@ -53,11 +53,4 @@ class SellerService
         }
     }
 
-    public function getAuthenticatedSeller(string $id): User
-    {
-        return User::with('store')
-                        ->where('id', $id)
-                        ->where('is_seller', true)
-                        ->firstOrFail();
-    }
 }
