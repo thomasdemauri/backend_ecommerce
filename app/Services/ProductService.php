@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use App\Exceptions\RequiredAttributesMissing;
 use App\Exceptions\OptionDoesNotExistsForAttribute;
 use App\Exceptions\AttributeDoesNotExistsForCategory;
+use App\Exceptions\UserIsNotSellerException;
 
 class ProductService
 {
@@ -67,14 +68,17 @@ class ProductService
      */
     public function storeWithAttributes(array $payload, User $user): Product
     {
-        DB::beginTransaction();
-
-        $seller = $this->sellerService->getAuthenticatedSeller($user->id);
         
         try {
             
+            if ($user->is_seller == false) {
+                throw new UserIsNotSellerException($user->id);
+            }
+
+            DB::beginTransaction();
+            
             $category = $this->categoryService->getCategoryWithAttributes($payload['product']['category_id']);
-            $product = $this->createProductWithoutAttributes($payload['product'], $seller);
+            $product = $this->createProductWithoutAttributes($payload['product'], $user);
             
             $this->saveAttributes($product, $category, $payload['attributes']);
             $this->checkRequiredAttributesInPayload($payload['attributes'], $category);
@@ -125,17 +129,30 @@ class ProductService
                 throw new AttributeDoesNotExistsForCategory($attributeRequest['attribute_id']);
             }
 
-            $selectedOption = $attribute->attributeOptions->firstWhere('id', $attributeRequest['attribute_option_id']);
-            
-            if (!$selectedOption) {
-                throw new OptionDoesNotExistsForAttribute($attributeRequest['attribute_option_id'], $attribute->id);
+            if ($attribute->type === 'options') {
+
+                $selectedOption = $attribute->attributeOptions->firstWhere('id', $attributeRequest['attribute_option']);
+                
+                if (!$selectedOption) {
+                    throw new OptionDoesNotExistsForAttribute($attributeRequest['attribute_option'], $attribute->id);
+                }
+
+                $product->productAttributeValues()->create([
+                    'attribute_id' => $attribute->id,
+                    'attribute_option_id' => $selectedOption->id,
+                    'value' => $selectedOption->value
+                ]);
+
+            } else {
+
+                $product->productAttributeValues()->create([
+                    'attribute_id' => $attribute->id,
+                    'value' => $attributeRequest['attribute_option']
+                ]);
+
             }
+
             
-            $product->productAttributeValues()->create([
-                'attribute_id' => $attribute->id,
-                'attribute_option_id' => $selectedOption->id,
-                'value' => $selectedOption->value
-            ]);
 
         }
 
@@ -196,6 +213,9 @@ class ProductService
     /**
      * Retorna apenas as chaves que estão presentes no payload e 
      * são opcionais também.
+     * 
+     * Isso evita que no banco de dados salve como null os campos
+     * que tenham regras como default(value).
      */
     private function filterOptionalFields(array $productData): array
     {
