@@ -2,8 +2,6 @@
 
 namespace Tests\Feature\Product;
 
-use App\Exceptions\AttributeDoesNotExistsForCategory;
-use App\Exceptions\OptionDoesNotExistsForAttribute;
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Store;
@@ -15,8 +13,11 @@ use App\Models\AttributeOption;
 use App\Services\SellerService;
 use App\Services\ProductService;
 use App\Services\CategoryService;
-use Illuminate\Foundation\Testing\WithFaker;
+use App\Exceptions\UserIsNotSellerException;
+use App\Exceptions\RequiredAttributesMissing;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use App\Exceptions\OptionDoesNotExistsForAttribute;
+use App\Exceptions\AttributeDoesNotExistsForCategory;
 
 class ProductServiceTest extends TestCase
 {
@@ -42,13 +43,14 @@ class ProductServiceTest extends TestCase
         );
     }
 
-    private function mockSellerAndCategory(User $user, Store $store, Category $category)
+    private function mockCategory(Category $category)
     {
-        // Simula que está retornando um usuário autenticado.
-        $this->sellerService->method('getAuthenticatedSeller')->willReturn($user->setRelation('store', $store));
 
-        // Como productService chama esse método que carrega uma categoria com os seus atributos,
-        // simula uma chamada também mas apenas retorna a própria categoria para simular.
+        /**
+         * ProductService espera um paylod que contenha um category_id onde é passado para 
+         * getCategoryWithAttributes. Nesse caso mockamos para que não dê erro já que 
+         * não existe esse payload passando o id da categoria.
+         */
         $this->categoryService->method('getCategoryWithAttributes')->willReturn($category);
 
     }
@@ -56,8 +58,11 @@ class ProductServiceTest extends TestCase
     public function test_store_product_successfully_with_valid_attributes()
     {
         // Arrange
-        $user = User::factory()->create();
-        $store = Store::factory()->create(['user_id' => $user->id]);
+        $user = User::factory()->create([
+            'is_seller' => true
+        ]);
+
+        Store::factory()->create(['user_id' => $user->id]);
 
         $attribute = Attribute::factory()->create(['required' => true]);
         $option = AttributeOption::factory()->create([
@@ -71,7 +76,7 @@ class ProductServiceTest extends TestCase
         $category->setRelation('attributes', collect([$attribute]));
 
         // Mockando os serviços
-        $this->mockSellerAndCategory($user, $store, $category);
+        $this->mockCategory($category);
 
         // Payload do produto
         $payload = [
@@ -86,7 +91,7 @@ class ProductServiceTest extends TestCase
             'attributes' => [
                 [
                     'attribute_id' => $attribute->id,
-                    'attribute_option_id' => $option->id
+                    'attribute_option' => $option->id
                 ]
             ]
         ];
@@ -108,15 +113,18 @@ class ProductServiceTest extends TestCase
         $this->expectException(AttributeDoesNotExistsForCategory::class);
 
         // Arrange
-        $user = User::factory()->create();
-        $store = Store::factory()->create([
+        $user = User::factory()->create([
+            'is_seller' => true
+        ]);
+
+        Store::factory()->create([
             'user_id' => $user->id
         ]);
 
         $category = Category::factory()->create();
 
         // Mocka os serviços
-        $this->mockSellerAndCategory($user, $store, $category);
+        $this->mockCategory($category);
         
         // Simula que não carrega nada ao acessar atributtes.
         $category->setRelation('attributes', collect());
@@ -134,7 +142,7 @@ class ProductServiceTest extends TestCase
             'attributes' => [
                 [
                     'attribute_id' => 999,
-                    'attribute_option_id' => 999
+                    'attribute_option' => 999
                 ]
             ]
         ];
@@ -149,24 +157,28 @@ class ProductServiceTest extends TestCase
         // Assert
         $this->expectException(OptionDoesNotExistsForAttribute::class);
 
-        $user = User::factory()->create();
-        $store = Store::factory()->create([
+        // Arrange
+        $user = User::factory()->create([
+            'is_seller' => true
+        ]);
+
+        Store::factory()->create([
             'user_id' => $user->id
         ]);
 
         $category = Category::factory()->create();
         
         // Mock
-        $this->mockSellerAndCategory($user, $store, $category);
+        $this->mockCategory($category);
 
         $attribute = Attribute::factory()->create([
-            'category_id' => $category->id
+            'category_id' => $category->id,
+            'type' => 'options'
         ]);
 
         $category->setRelation('attributes', $attribute);
         $attribute->setRelation('attributeOptions', collect());
         
-
         // Payload do produto
         $payload = [
             'product' => [
@@ -180,13 +192,120 @@ class ProductServiceTest extends TestCase
             'attributes' => [
                 [
                     'attribute_id' => $attribute->id,
-                    'attribute_option_id' => 999
+                    'attribute_option' => 999
                 ]
             ]
         ];
 
         // Act
         $this->productService->storeWithAttributes($payload, $user);
+
+    }
+
+    public function test_store_product_throws_expection_when_required_attributes_are_missing()
+    {
+        // Assert
+        $this->expectException(RequiredAttributesMissing::class);
+
+        // Arrange
+        $user = User::factory()->create([
+            'is_seller' => true
+        ]);
+
+        Store::factory()->create([
+            'user_id' => $user->id
+        ]);
+
+        $category = Category::factory()->create();
+        $this->mockCategory($category);
+
+        $attribute = Attribute::factory()->create([
+            'category_id' => $category->id,
+            'required' => true
+        ]);
+
+        $category->setRelation('attributes', $attribute);
+
+        // Payload do produto
+        $payload = [
+            'product' => [
+                'name' => 'Camisa do Timão',
+                'description' => 'Linda camisa',
+                'price' => 199.99,
+                'category_id' => $category->id,
+                'stock_quantity' => 5,
+                'is_active' => true
+            ],
+            'attributes' => []
+        ];
+
+        // Act 
+        $this->productService->storeWithAttributes($payload, $user);
+
+    }
+
+    public function test_store_product_successfully_with_text_attributes()
+    {
+        // Arrange
+        $user = User::factory()->create([
+            'is_seller' => true
+        ]);
+
+        Store::factory()->create([
+            'user_id' => $user->id
+        ]);
+
+        $category = Category::factory()->create();
+        $this->mockCategory($category);
+        
+        $textAttribute = Attribute::factory()->create([
+            'type' => 'text'
+        ]);
+
+        $category->setRelation('attributes', $textAttribute);
+
+        // Payload do produto
+        $payload = [
+            'product' => [
+                'name' => 'Camisa do Timão',
+                'description' => 'Linda camisa',
+                'price' => 199.99,
+                'category_id' => $category->id,
+                'stock_quantity' => 5,
+                'is_active' => true
+            ],
+            'attributes' => [
+                [
+                    'attribute_id' => $textAttribute->id,
+                    'attribute_option' => 'Intel I5'
+                ]
+            ]
+        ];
+        
+        // Act
+        $product = $this->productService->storeWithAttributes($payload, $user);
+
+        // Assert
+        $this->assertInstanceOf(Product::class, $product);
+        $this->assertEquals('Camisa do Timão', $product->name);
+        $this->assertCount(1, $product->productAttributeValues);
+        $this->assertEquals('Intel I5', $product->productAttributeValues->first()->value ?? '');
+
+    }
+    
+    public function test_store_product_throws_expection_when_user_is_not_a_seller()
+    {
+
+        // Arrange
+        $user = User::factory()->create([
+            'is_seller' => false
+        ]);
+
+        // Assert
+        $this->expectException(UserIsNotSellerException::class);
+
+        // Act
+       $this->productService->storeWithAttributes([], $user);
 
     }
 }
