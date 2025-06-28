@@ -8,13 +8,14 @@ use App\Http\Controllers\Seller\SellerController;
 use Illuminate\Support\Facades\Auth;
 
 Route::post('/login', [AuthenticateController::class, 'authenticate'])->name('login');
-Route::post('/logout', [AuthenticateController::class, 'logout']);
-
 Route::post('/new-user', [UserController::class, 'store'])->name('user.store');
+
 
 
 // Com sanctum
 Route::middleware('auth:sanctum')->group(function (){
+    
+    Route::post('/logout', [AuthenticateController::class, 'logout']);
     Route::post('/seller/become', [SellerController::class, 'createSellerWithStore'])->name('seller.create_seller_with_store');
     Route::post('/seller/product', [ProductController::class, 'store'])->name('product.store');
 });

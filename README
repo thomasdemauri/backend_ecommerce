@@ -1,1 +1,6 @@
-Ajustar resource de produto lista e de detalhes visao do comprador
+Testes = [
+    Terminar teste de requiredMissingAttributes
+    Teste de controller
+]
+
+Rota de detail do produto

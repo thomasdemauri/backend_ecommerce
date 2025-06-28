@@ -4,7 +4,7 @@ namespace App\Exceptions;
 
 use Exception;
 
-class UserIsNotASellerException extends Exception
+class UserIsNotSellerException extends Exception
 {
     public function __construct(string $id)
     {
