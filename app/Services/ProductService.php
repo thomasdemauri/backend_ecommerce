@@ -41,14 +41,17 @@ class ProductService
         $this->categoryService = $categoryService;
     }
 
-    public function detail(string $id)
+    public function detail(string $id, User $user)
     {
+
+        $store = $user->store;
+
         $product = Product::with([
             'productAttributeValues.attributeOption', 
             'productAttributeValues.attribute',
             'store',
             'category'
-        ])->findOrFail($id);
+        ])->where('store_id', $store->id)->findOrFail($id);
 
         return $product;
     }

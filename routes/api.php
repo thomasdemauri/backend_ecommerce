@@ -18,7 +18,11 @@ Route::middleware('auth:sanctum')->group(function (){
     Route::post('/logout', [AuthenticateController::class, 'logout']);
     Route::post('/seller/become', [SellerController::class, 'createSellerWithStore'])->name('seller.create_seller_with_store');
     Route::post('/seller/product', [ProductController::class, 'store'])->name('product.store');
+    Route::get('/seller/product/detail/{id}', [ProductController::class, 'detail'])->name('seller.detail_product');
 });
+
+// TEMPORARIO!!!
+Route::get('/attributes/category/{id}', [ProductController::class, 'getAttributesFromCategory'])->name('attributes.get');
 
 Route::middleware('auth:sanctum')->get('/me', function () {
     return response()->json([
