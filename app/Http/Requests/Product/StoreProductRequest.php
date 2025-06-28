@@ -42,7 +42,7 @@ class StoreProductRequest extends FormRequest
 
             'attributes' => ['required', 'array', 'min:1'],
             'attributes.*.attribute_id' => ['required', 'exists:attributes,id'],
-            'attributes.*.attribute_option_id' => ['required', 'exists:attribute_options,id'],
+            'attributes.*.attribute_option' => ['required', 'exists:attribute_options,id'],
         ];
     }
 }
