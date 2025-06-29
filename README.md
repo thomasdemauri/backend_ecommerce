@@ -61,11 +61,5 @@ Tem que passar o token do usuário atual autenticado.
 	"store_name": "Nova loja",
 }   
 ```
-
-## POST /seller/product/detail/{id}
-Tem que passar o token do usuário atual autenticado.
-Retorna os detalhes do produto.
-
-
 ## GET /attributes/category/{id}
 Retorna os atributos da categoria com as opções
