@@ -53,13 +53,5 @@ Tem que passar o token do usuário atual autenticado.
 	]
 } 
 ```
-
-## POST /seller/become
-Tem que passar o token do usuário atual autenticado.
-```json
-{
-	"store_name": "Nova loja",
-}   
-```
 ## GET /attributes/category/{id}
 Retorna os atributos da categoria com as opções
